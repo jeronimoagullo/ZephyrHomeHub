@@ -20,6 +20,7 @@ LOG_MODULE_REGISTER(coap_client, LOG_LEVEL_DBG);
 #include "net_private.h"
 
 #include "sensor_handler.h"
+#include "utils.h"
 
 #define PEER_PORT 5683
 #define MAX_COAP_MSG_LEN 256
@@ -31,7 +32,7 @@ struct pollfd fds[1];
 static int nfds;
 
 /* CoAP Options */
-static const char * const test_path[] = { "test", NULL };
+static const char * const temperature_path[] = { "temp-node", NULL };
 
 static void wait(void)
 {
@@ -122,18 +123,29 @@ end:
 int send_sensor_value_and_wait_for_reply(void)
 {
 	uint8_t payload[10] = "";
+	char node_id[9]; // 8 chars + null terminator
 	struct coap_packet request;
-	const char * const *p;
 	uint8_t *data;
 	int ret;
+	const char * const *p;
 
+	// Get latest sensor value (temperature and humidity)
 	get_latest_sensor_value_char(payload);
 
+	// Get node id (device MAC)
+	ret = get_node_id(node_id, sizeof(node_id));
+    if (ret < 0) {
+        LOG_ERR("Failed to get node ID");
+        return ret;
+    }
+
+	// Init data buffer for coap message
 	data = (uint8_t *)k_malloc(MAX_COAP_MSG_LEN);
 	if (!data) {
 		return -ENOMEM;
 	}
 
+	// Init coap packet as post and corresponding message id and coap type/version
 	ret = coap_packet_init(&request, data, MAX_COAP_MSG_LEN,
 			     COAP_VERSION_1, COAP_TYPE_CON,
 			     COAP_TOKEN_MAX_LEN, coap_next_token(),
@@ -143,7 +155,8 @@ int send_sensor_value_and_wait_for_reply(void)
 		goto end;
 	}
 
-	for (p = test_path; p && *p; p++) {
+	// Add URI path: "/temperature_node"
+	for (p = temperature_path; p && *p; p++) {
 		ret = coap_packet_append_option(&request, COAP_OPTION_URI_PATH,
 					      *p, strlen(*p));
 		if (ret < 0) {
@@ -152,6 +165,17 @@ int send_sensor_value_and_wait_for_reply(void)
 		}
 	}
 
+	// Add URI query with node ID: ?node_id=ABCD1234
+    char query_param[32];
+    snprintf(query_param, sizeof(query_param), "id=%s", node_id);
+    ret = coap_packet_append_option(&request, COAP_OPTION_URI_QUERY,
+                                   query_param, strlen(query_param));
+    if (ret < 0) {
+        LOG_ERR("Failed to add URI query: %d", ret);
+        return ret;
+    }
+
+	// Add payload marker and sensor data
 	ret = coap_packet_append_payload_marker(&request);
 	if (ret < 0) {
 		LOG_ERR("Unable to append payload marker");
@@ -165,8 +189,10 @@ int send_sensor_value_and_wait_for_reply(void)
 		goto end;
 	}
 
+	// Log the message in serial terminal
 	net_hexdump("Request", request.data, request.offset);
 
+	// Send the CoAP message
 	ret = send(sock, request.data, request.offset, 0);
 
 	ret = process_simple_coap_reply();

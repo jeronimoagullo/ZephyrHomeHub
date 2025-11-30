@@ -1,0 +1,3 @@
+#define TEMPERATURE_NODE_ID     0x01
+#define CAMERA_NODE_ID          0x02
+#define COMMAND_VOICE_NODE_ID   0x03
