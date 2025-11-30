@@ -6,4 +6,4 @@ project(tempreature_node)
 
 FILE(GLOB app_sources src/*.c)
 target_sources(app PRIVATE ${app_sources})
-# target_include_directories(app PRIVATE ${ZEPHYR_BASE}/subsys/net/ip)
+target_include_directories(app PRIVATE ${ZEPHYR_BASE}/subsys/net/ip)

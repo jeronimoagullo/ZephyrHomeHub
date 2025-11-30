@@ -13,6 +13,7 @@
 
 #include "config_network.h"
 #include "sensor_handler.h"
+#include "coap_client.h"
 
 #define LOG_LEVEL CONFIG_LOG_DEFAULT_LEVEL
 #include <zephyr/logging/log.h>
@@ -41,8 +42,29 @@ int main(void)
 
     setup_sensor();
 
-	LOG_DBG("Done");
+    ret = start_coap_client();
+    if (ret < 0){
+        LOG_ERR("Error starting CoAP client %d", ret);
+        goto quit;
+    }
 
+    LOG_INF("Started CoAP client");
+
+    
+    while(1){
+        ret = send_sensor_value_and_wait_for_reply();
+        if (ret < 0) {
+            goto quit;
+        }
+		k_msleep(10 * MSEC_PER_SEC);
+    }
+
+	LOG_DBG("Done");
 	return 0;
 
+quit:
+    stop_coap_client();
+	LOG_ERR("quit");
+
+	return 0;
 }

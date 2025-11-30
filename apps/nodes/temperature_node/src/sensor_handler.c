@@ -38,7 +38,6 @@ K_TIMER_DEFINE(sensor_timer, NULL, NULL);
 void read_sensor_values()
 {
 	int rc = 0;
-	int index = 0;
 	struct SensorValues;
 
 	// Initialization of the timer for sensor sampling
@@ -102,6 +101,15 @@ void read_sensor_values()
 struct SensorValues get_latest_sensor_value()
 {
 	return sensor_last_value;
+}
+
+void get_latest_sensor_value_char(uint8_t* payload)
+{
+
+	sprintf(payload, "%s%d.%d",
+		PRIq_arg(sensor_last_value.temperature.readings[0].temperature, 2, sensor_last_value.temperature.shift));
+
+	return;
 }
 
 int setup_sensor()

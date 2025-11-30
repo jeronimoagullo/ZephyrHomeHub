@@ -20,5 +20,6 @@ struct SensorValues {
 
 int setup_sensor(void);
 struct SensorValues get_latest_sensor_value();
+void get_latest_sensor_value_char(uint8_t* payload);
 
 #endif /* __CONFIG_TEMPERATURE_SENSOR_H__ */
