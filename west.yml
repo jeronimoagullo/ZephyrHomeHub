@@ -1,0 +1,12 @@
+# zephyrproject/workspace/ZephyrHomeHub/west.yml
+manifest:
+  remotes:
+    - name: zephyrproject
+      url-base: https://github.com/zephyrproject-rtos
+  projects:
+    - name: zephyr
+      remote: zephyrproject
+      revision: v4.3.0
+      import: true
+  self:
+    path: apps

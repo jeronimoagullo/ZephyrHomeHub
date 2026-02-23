@@ -5,6 +5,9 @@ LOG_MODULE_REGISTER(coap_server, LOG_LEVEL_DBG);
 #include "net_sample_common.h"
 #include <zephyr/net/coap_service.h>
 #include <zephyr/net/coap.h> // For coap_* functions
+#include <stdlib.h>
+
+#include "utils.h"
 
 static uint16_t coap_port = 5683;
 
@@ -27,9 +30,9 @@ int init_coap_server(){
 static int temp_node_post(struct coap_resource *resource, struct coap_packet *request,
                           struct sockaddr *addr, socklen_t addr_len)
 {
-    uint8_t payload_data[64];
     uint16_t payload_len;
     const uint8_t *payload;
+    char node_id[10] = {0};
     char payload_str[64];
     int ret;
 
@@ -40,10 +43,9 @@ static int temp_node_post(struct coap_resource *resource, struct coap_packet *re
     ret = coap_find_options(request, COAP_OPTION_URI_QUERY, &query_opt, 1);
     if (ret > 0) {
         /* query_opt.value now holds the string "id=ABCD1234" */
-        char node_id[10];
-        /* Simple extraction: assumes format is exactly 'id=XXXX' */
-        memcpy(node_id, &query_opt.value[3], 8); // Skip "id=" (3 chars)
-        node_id[8] = '\0'; // Null-terminate
+        int len = MIN(query_opt.len - 3, sizeof(node_id) - 1);
+        memcpy(node_id, &query_opt.value[3], len);
+        node_id[len] = '\0';
         LOG_INF("POST request from Node ID: %s", node_id);
     }
 
@@ -54,6 +56,19 @@ static int temp_node_post(struct coap_resource *resource, struct coap_packet *re
         memcpy(payload_str, payload, len);
         payload_str[len] = '\0';
         LOG_INF("Sensor payload: %s", payload_str);
+    }
+
+    /* 3. Prepare the receive message for the queue */
+    struct temp_data_msg msg = {0};
+    strncpy(msg.node_id, node_id, NODE_ID_LEN - 1);
+    msg.temperature = atof(payload_str);   // Convertir cadena a float
+    msg.humidity = -1.0f;                  // De momento no se usa
+    msg.timestamp = k_uptime_get();
+
+    /* 4. Send to the queue (no blocking) */
+    ret = temp_data_enqueue(&msg);
+    if (ret < 0) {
+        LOG_WRN("Queue full, dropping data from node %s", node_id);
     }
 
     /* 3. Send a response back to the client.
