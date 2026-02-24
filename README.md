@@ -10,6 +10,8 @@
 
 ZephyrHomeHub is an open-source, self-hosted home automation system that runs entirely on your local network. No cloud dependencies, no monthly fees, complete data ownership. Plug-and-play sensor nodes approach.
 
+![Project sample](images/temperature_tab.jpg)
+
 ## Project Overview
 
 ZephyrHomeHub connects various IoT devices (nodes) to a central hub using CoAP protocol. The system is designed for real-time sensor monitoring, video streaming (TODO), and voice command processing (TODO) - all running locally in your home.
