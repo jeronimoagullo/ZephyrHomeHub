@@ -29,6 +29,12 @@ static lv_obj_t *no_nodes_label = NULL;
 // Stale data threshold: 2 minutes in milliseconds
 #define STALE_DATA_THRESHOLD_MS (2 * 60 * 1000)
 
+// Grid layout configuration
+#define GRID_COLS 3
+#define GRID_ROWS 2
+#define GRID_PADDING 10
+#define GRID_GAP 10
+
 /**
  * @brief Create the Temperature tab content with sensor node grid.
  * @param tab Pointer to the tab object.
@@ -62,7 +68,7 @@ void create_node_widgets(node_info_t *node) {
     if (no_nodes_label != NULL) {
         lv_obj_add_flag(no_nodes_label, LV_OBJ_FLAG_HIDDEN);
 
-        // Set flex layout on tab for 2x3 grid
+        // Set flex layout on tab for grid
         lv_obj_set_flex_flow(temp_tab, LV_FLEX_FLOW_ROW_WRAP);
         lv_obj_set_flex_align(temp_tab, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
         lv_obj_set_style_pad_all(temp_tab, 10, 0);
@@ -71,9 +77,21 @@ void create_node_widgets(node_info_t *node) {
 
     LOG_INF("Creating node card widget for %s", node->node_id);
 
-    // Create card container (3 columns: 146px each on 480px display)
+    // Calculate card dimensions based on tab size to fit exactly 6 cards (2x3 grid)
+    lv_coord_t tab_width = lv_obj_get_width(temp_tab);
+    lv_coord_t tab_height = lv_obj_get_height(temp_tab);
+    
+    // Account for padding and gaps in width calculation
+    lv_coord_t available_width = tab_width - (2 * GRID_PADDING) - ((GRID_COLS - 1) * GRID_GAP);
+    lv_coord_t card_width = available_width / GRID_COLS;
+    
+    // Account for padding and gaps in height calculation
+    lv_coord_t available_height = tab_height - (2 * GRID_PADDING) - ((GRID_ROWS - 1) * GRID_GAP);
+    lv_coord_t card_height = available_height / GRID_ROWS;
+
+    // Create card container with calculated dimensions
     lv_obj_t *card = lv_obj_create(temp_tab);
-    lv_obj_set_size(card, 146, 130);
+    lv_obj_set_size(card, card_width, card_height);
     lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_radius(card, 8, 0);
     lv_obj_set_style_border_width(card, 2, 0);
