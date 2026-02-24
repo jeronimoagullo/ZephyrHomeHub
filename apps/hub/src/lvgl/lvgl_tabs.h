@@ -39,10 +39,10 @@ void style_init(void);
 void init_gui(void);
 
 /**
- * @brief Initialize the sensor node container with flex grid layout.
- * @param tab Pointer to the temperature tab object.
+ * @brief Create the Temperature tab content with sensor node grid.
+ * @param tab Pointer to the tab object.
  */
-void init_node_container(lv_obj_t *tab);
+void create_tab_temperature(lv_obj_t *tab);
 
 /**
  * @brief Create LVGL widgets for a sensor node card.

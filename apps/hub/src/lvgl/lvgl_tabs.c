@@ -80,22 +80,6 @@ void create_tab_welcome(lv_obj_t* tab){
 }
 
 /**
- * @brief Create the Temperature tab content with sensor node grid.
- * @param tab Pointer to the tab object.
- */
-void create_tab_temperature(lv_obj_t* tab){
-
-        // create top text
-        lv_obj_t * label = lv_label_create(tab);
-        lv_label_set_text(label, "This tab depicts the temperature and humidity from sensors");
-        lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
-
-        // TODO
-        init_node_container(tab);
-        
-}
-
-/**
  * @brief Create the Forecast tab content (weather forecast placeholder).
  * @param tab Pointer to the tab object.
  */

@@ -23,21 +23,25 @@ LV_IMG_DECLARE(thermometer_icon_80px);
 /* Static reference to temperature tab for grid layout */
 static lv_obj_t *temp_tab = NULL;
 
+/* Static label for no nodes message */
+static lv_obj_t *no_nodes_label = NULL;
+
 /* Stale data threshold: 2 minutes in milliseconds */
 #define STALE_DATA_THRESHOLD_MS (2 * 60 * 1000)
 
 /**
- * @brief Initialize the sensor node container with flex grid layout.
- * @param tab Pointer to the temperature tab object.
+ * @brief Create the Temperature tab content with sensor node grid.
+ * @param tab Pointer to the tab object.
  */
-void init_node_container(lv_obj_t *tab) {
+void create_tab_temperature(lv_obj_t *tab) {
     temp_tab = tab;
     
-    /* Set flex layout on tab for 2x3 grid */
-    lv_obj_set_flex_flow(tab, LV_FLEX_FLOW_ROW_WRAP);
-    lv_obj_set_flex_align(tab, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
-    lv_obj_set_style_pad_all(tab, 10, 0);
-    lv_obj_set_style_pad_gap(tab, 10, 0);
+    /* Create no nodes message label initially */
+    no_nodes_label = lv_label_create(tab);
+    lv_label_set_text(no_nodes_label, "This tab depicts the sensors temperature and humidity.\n\nNo nodes detected.\nIt will update automatically when a new node is found.");
+    lv_obj_set_size(no_nodes_label, LV_PCT(80), LV_SIZE_CONTENT);
+    lv_obj_align_to(no_nodes_label, tab, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_text_align(no_nodes_label, LV_TEXT_ALIGN_CENTER, 0);
 }
 
 /**
@@ -52,6 +56,17 @@ void create_node_widgets(node_info_t *node) {
     if (temp_tab == NULL) {
         LOG_ERR("Temperature tab not initialized. Call init_node_container first");
         return;
+    }
+
+    /* Hide the no nodes message when first node is created and set grid */
+    if (no_nodes_label != NULL) {
+        lv_obj_add_flag(no_nodes_label, LV_OBJ_FLAG_HIDDEN);
+
+        /* Set flex layout on tab for 2x3 grid */
+        lv_obj_set_flex_flow(temp_tab, LV_FLEX_FLOW_ROW_WRAP);
+        lv_obj_set_flex_align(temp_tab, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+        lv_obj_set_style_pad_all(temp_tab, 10, 0);
+        lv_obj_set_style_pad_gap(temp_tab, 10, 0);
     }
 
     LOG_INF("Creating node card widget for %s", node->node_id);
