@@ -19,8 +19,8 @@
 #define __CONFIG_NET_H__
 
 #define CONFIG_NET_WIFI_LENGTH 100
-#define WIFI_SSID       "YOUR_WIFI"
-#define WIFI_PASSWORD   "YOUR_PASSWORD"
+#define WIFI_SSID       CONFIG_WIFI_SSID
+#define WIFI_PASSWORD   CONFIG_WIFI_PASSWORD
 
 // Network prototypes
 void network_init(void);

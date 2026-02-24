@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.20.0)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(coap_server)
 
-FILE(GLOB app_sources src/main.c src/config_network.c src/coap_server.c)
+FILE(GLOB app_sources src/main.c src/config_network.c src/coap_server.c src/lvgl/*.c src/utils.c)
 target_sources(app PRIVATE ${app_sources})
 target_include_directories(app PRIVATE ${ZEPHYR_BASE}/subsys/net/ip)
 

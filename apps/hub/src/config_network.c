@@ -1,3 +1,13 @@
+/**
+ * @file config_network.c
+ * @author Jeronimo Agullo (jeronimoagullo97@gmail.com)
+ * @brief Network configuration and management for Ethernet and WiFi interfaces.
+ * @version 2.0
+ * @date 2025-02-24
+ * @copyright Copyright (c) 2025
+ * @see https://github.com/jeroagullo
+ */
+
 #include <string.h>
 #include <zephyr/kernel.h>
 
@@ -12,15 +22,25 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(config_network, LOG_LEVEL_DBG);
 
-
+/**
+ * @brief IPv4 address obtained event callback structure.
+ */
 static struct net_mgmt_event_callback ipv4_cb;
 static K_SEM_DEFINE(sem_ipv4, 0, 1);
 
 #ifdef CONFIG_WIFI
+/**
+ * @brief WiFi connection event callback structure.
+ */
 static struct net_mgmt_event_callback wifi_cb;
 static K_SEM_DEFINE(sem_wifi, 0, 1);
 
-// Called when the WiFi is connected
+/**
+ * @brief Callback handler for WiFi connection events.
+ * @param cb Pointer to the event callback structure.
+ * @param mgmt_event The management event type.
+ * @param iface Pointer to the network interface.
+ */
 static void on_wifi_connection_event(struct net_mgmt_event_callback *cb,
                                      uint64_t mgmt_event,
                                      struct net_if *iface)
@@ -46,7 +66,12 @@ static void on_wifi_connection_event(struct net_mgmt_event_callback *cb,
 
 #endif
 
-// Event handler for WiFi management events
+/**
+ * @brief Callback handler for IPv4 address obtained event.
+ * @param cb Pointer to the event callback structure.
+ * @param mgmt_event The management event type.
+ * @param iface Pointer to the network interface.
+ */
 static void on_ipv4_obtained(struct net_mgmt_event_callback *cb,
                              uint64_t mgmt_event,
                              struct net_if *iface)
@@ -57,7 +82,9 @@ static void on_ipv4_obtained(struct net_mgmt_event_callback *cb,
     }
 }
 
-// Initialize the WiFi event callbacks
+/**
+ * @brief Initialize network event callbacks for IPv4 and WiFi (if enabled).
+ */
 void network_init(void)
 {
 
@@ -75,14 +102,19 @@ void network_init(void)
 
 }
 
-// Wait for IP address (blocking)
+/**
+ * @brief Wait for IP address assignment (blocking).
+ * 
+ * Blocks until an IPv4 address is obtained via DHCP.
+ * Logs the IP address and gateway once obtained.
+ */
 void wait_for_ip_addr(void)
 {
     struct net_if *iface;
     char ip_addr[NET_IPV4_ADDR_LEN];
     char gw_addr[NET_IPV4_ADDR_LEN];
 
-    // Get interface
+    // Get default network interface
     iface = net_if_get_default();
 
     // Wait for the IPv4 address to be obtained
@@ -107,10 +139,9 @@ void wait_for_ip_addr(void)
         LOG_ERR("Error: Could not convert gateway address to string");
     }
 
-    // Print the WiFi status
 #ifdef CONFIG_WIFI
-    struct wifi_iface_status status;
     // Get the WiFi status
+    struct wifi_iface_status status;
     if (net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS,
                  iface,
                  &status,
@@ -134,6 +165,11 @@ void wait_for_ip_addr(void)
 #endif
 }
 
+/**
+ * @brief Start network connection and DHCP client.
+ * 
+ * @return 0 on success.
+ */
 int network_connect(void)
 {
     struct net_if *iface;
@@ -141,15 +177,22 @@ int network_connect(void)
     // Get the default networking interface
     iface = net_if_get_default();
 
-    // start dhcp
-	net_dhcpv4_start(iface);
+    // Start DHCP client
+    net_dhcpv4_start(iface);
 
     return 0;
 }
 
 #ifdef CONFIG_WIFI
 
-// Connect to the WiFi network (blocking)
+/**
+ * @brief Connect to a WiFi network (blocking).
+ * 
+ * @param ssid WiFi network SSID.
+ * @param psk WiFi network password (PSK).
+ * 
+ * @return 0 on success, negative on error.
+ */
 int wifi_connect(char *ssid, char *psk)
 {
     int ret;
@@ -174,11 +217,11 @@ int wifi_connect(char *ssid, char *psk)
                    iface,
                    &params,
                    sizeof(params));
-	
-	// start dhcp
-	net_dhcpv4_start(iface);
-	
-	LOG_INF("Connecting to WIFI...");
+
+    // Start DHCP client
+    net_dhcpv4_start(iface);
+
+    LOG_INF("Connecting to WIFI...");
 
     // Wait for the connection to complete
     k_sem_take(&sem_wifi, K_FOREVER);
@@ -186,8 +229,10 @@ int wifi_connect(char *ssid, char *psk)
     return ret;
 }
 
-
-// Disconnect from the WiFi network
+/**
+ * @brief Disconnect from the current WiFi network.
+ * @return 0 on success, negative on error.
+ */
 int wifi_disconnect(void)
 {
     int ret;
@@ -199,3 +244,45 @@ int wifi_disconnect(void)
 }
 
 #endif
+
+/**
+ * @brief Get the current IPv4 address as a string.
+ * @param ip_addr Buffer to store the IP address string.
+ * @param len Length of the buffer.
+ * @return 0 on success, -1 on error.
+ */
+int get_ip_address(char *ip_addr, size_t len)
+{
+    struct net_if *iface = net_if_get_default();
+    if (iface == NULL || iface->config.ip.ipv4 == NULL) {
+        return -1;
+    }
+    if (net_addr_ntop(AF_INET,
+                      &iface->config.ip.ipv4->unicast[0].ipv4.address.in_addr,
+                      ip_addr,
+                      len) == NULL) {
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * @brief Get the current gateway address as a string.
+ * @param gw_addr Buffer to store the gateway address string.
+ * @param len Length of the buffer.
+ * @return 0 on success, -1 on error.
+ */
+int get_gateway_address(char *gw_addr, size_t len)
+{
+    struct net_if *iface = net_if_get_default();
+    if (iface == NULL || iface->config.ip.ipv4 == NULL) {
+        return -1;
+    }
+    if (net_addr_ntop(AF_INET,
+                      &iface->config.ip.ipv4->gw,
+                      gw_addr,
+                      len) == NULL) {
+        return -1;
+    }
+    return 0;
+}

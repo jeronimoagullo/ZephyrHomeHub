@@ -10,34 +10,34 @@
 
 ZephyrHomeHub is an open-source, self-hosted home automation system that runs entirely on your local network. No cloud dependencies, no monthly fees, complete data ownership. Plug-and-play sensor nodes approach.
 
-## 🏠 Project Overview
+## Project Overview
 
-ZephyrHomeHub connects various IoT devices (nodes) to a central hub using lightweight, efficient protocols. The system is designed for real-time sensor monitoring, video streaming, and voice command processing - all running locally in your home.
+ZephyrHomeHub connects various IoT devices (nodes) to a central hub using CoAP protocol. The system is designed for real-time sensor monitoring, video streaming (TODO), and voice command processing (TODO) - all running locally in your home.
 
 ### Key Features
-- **🔒 Privacy-First**: Everything runs locally - no data leaves your network
-- **⚡ Real-Time Performance**: Zephyr RTOS ensures deterministic, low-latency responses
-- **🔧 Modular Architecture**: Easily add new sensor types and capabilities
-- **🌐 Standards-Based**: Built on CoAP and mDNS for interoperability
-- **📱 Rich Visualization**: Built-in display support for real-time monitoring
+- **Real-Time Performance**: Zephyr RTOS ensures deterministic, low-latency responses
+- **Modular Architecture**: Easily add new sensor types and capabilities
+- **Standards-Based**: Built on CoAP and mDNS for interoperability
+- **Rich Visualization**: Built-in LVGL display
+- **Thread-Safe Architecture**: Work queue infrastructure for smooth, responsive UI updates
 
-## 🛠️ Hardware Architecture
+## Hardware Architecture
 
 ### Hub Controller
-- **Primary Board**: STM32F746G Discovery Board
+- **Primary Board**: STM32F746G Discovery Board (with built-in display)
 - **Features**: Built-in display, Ethernet, ample processing power
 - **Role**: Central server, data aggregation, user interface
 
 ### Sensor Nodes
-| Node Type | Board | Sensor | Purpose |
-|-----------|-------|--------|---------|
-| **Temperature/Humidity** | ESP32-S3 DevKitM | BME280 | Environmental monitoring |
-| **Camera** | ESP32-S3 XIAO | Camera module | Video streaming & capture |
-| **Voice Commands** | B-L475E-IOT01A1 | Microphones | Voice recognition processing |
+| Node Type | Board | Sensor | Purpose | status |
+|-----------|-------|--------|---------|--------|
+| **Temperature/Humidity** | ESP32-S3 DevKitM | BME280 | Environmental monitoring | 🚧 In Progress |
+| **Camera** | ESP32-S3 XIAO | Camera module | Video streaming & capture | 📋 TODO |
+| **Voice Commands** | B-L475E-IOT01A1 | Microphones | Voice recognition processing | 📋 TODO |
 
-## 📁 Project Structure
+## Project Structure
 
-The project is structured in a `hub` folder for the main hub server and a `nodes` folder withe the app of each node. Each node app has its own `README.md` file.
+The project is structured in a `hub` folder for the main hub server and a `nodes` folder with the app of each node. Each node app has its own `README.md` file.
 
 ```
 ZephyrHomeHub/
@@ -55,7 +55,7 @@ ZephyrHomeHub/
 └── west.yml                 # Zephyr west with Zephyr version
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -91,7 +91,7 @@ ZephyrHomeHub/
    west flash
    ```
 
-## 📡 Communication Protocol
+## Communication Protocol
 
 ### Discovery (mDNS)
 Nodes automatically advertise their services using multicast DNS:
@@ -103,12 +103,21 @@ TXT Records: node_type, capabilities, version
 ### Data Exchange (CoAP)
 Lightweight request-response protocol for efficient IoT communication:
 ```
-coap://[node-ip]:5683/sensors/temperature
-coap://[node-ip]:5683/camera/stream
-coap://[node-ip]:5683/voice/command
+POST coap://[hub-ip]:5683/temp/node
+Payload: {"node_id": "ABC123", "temp": 25.3, "hum": 67.8}
+
+Future endpoints:
+GET coap://[node-ip]:5683/camera/stream
+POST coap://[node-ip]:5683/voice/command
 ```
 
-## 🔧 Configuration
+**Current Implementation**:
+- CoAP server runs on dedicated thread (port 5683)
+- Thread-safe work queue submits sensor data to UI
+- Message queue processes data in main LVGL thread
+- Automatic node registration (up to 6 simultaneous nodes)
+
+## Configuration
 
 ### Network Setup
 The system supports both Ethernet and WiFi connectivity:
@@ -116,29 +125,61 @@ The system supports both Ethernet and WiFi connectivity:
 - **Nodes**: Use WiFi for flexible placement
 - **Automatic Discovery**: No manual IP configuration needed
 
+### Hub Architecture
+The hub uses an efficient multi-threaded architecture:
+- **Main Thread**: Event-driven LVGL task handler with `k_poll`
+- **CoAP Server Thread**: Handles incoming sensor data
+- **UI Work Queue**: Thread-safe bridge for LVGL updates
+- **Message Queue**: Decouples data reception from UI updates (30 message buffer)
+
+### Sensor Tab UI Features
+- **Grid Layout**: 2x3 cards for up to 6 nodes (225x130px each)
+- **Visual Elements**:
+  - Thermometer icon (80x33px) on the left
+  - Node ID header at top right
+  - Temperature display (red, 18pt font)
+  - Humidity display (blue, 18pt font)
+- **Stale Data Detection**: Cards turn red if no data received for 2+ minutes
+- **Auto-scaling**: Flex layout adapts to display size
+
 ### Adding New Nodes
 1. Implement the node application in `apps/nodes/`
-2. Define mDNS service advertisement
-3. Implement CoAP resources for data exposure
-4. Build and flash to target hardware
+2. Send CoAP POST to `coap://[hub-ip]:5683/temp/node`
+3. Payload: JSON with node_id, temperature, humidity
+4. Node automatically appears in hub UI
+5. Build and flash to target hardware
 
-## 🎯 Current Capabilities
+## Current Capabilities
 
-### ✅ Implemented Features
+### Implemented Features
 - [x] Network initialization (Ethernet/WiFi)
-- [x] Temperature/humidity sensing
-- [x] Basic hub-node communication framework
+- [x] CoAP server with POST endpoint for sensor data
+- [x] Thread-safe work queue architecture for LVGL updates
+- [x] Event-driven main loop using `k_poll` for efficient CPU usage
+- [x] Temperature/humidity sensing with multiple node support (up to 6)
+- [x] LVGL tabbed interface:
+  - **Welcome Tab**: Project branding and introduction
+  - **Sensor Tab**: Grid-based sensor visualization with:
+    - Thermometer icons for each node
+    - Real-time temperature and humidity display
+    - Stale data detection (red background for >2 min)
+    - Card-based layout with color-coded values
+  - **Forecast Tab**: Weather forecast integration (planned)
+  - **Settings Tab**: Network and system configuration
+- [x] Sensor history tracking (60 samples per node)
+- [x] Automatic node discovery and widget creation
+- [x] System uptime clock (HH:MM:SS precision)
 
-### 🚧 In Development
-- [ ] CoAP client/server communication
+### In Development
 - [ ] mDNS service discovery
+- [ ] Weather forecast integration (Open-Meteo API)
+- [ ] Historical data visualization (charts)
 - [ ] Camera video streaming
 - [ ] Voice command processing
 - [ ] Web interface for remote monitoring
-- [ ] Data logging and visualization
 - [ ] Mobile app integration
 
-## 🤝 Contributing
+## Contributing
 
 We love contributions! Here's how you can help:
 
