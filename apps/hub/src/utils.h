@@ -14,11 +14,11 @@
 #include <zephyr/kernel.h>
 #include <lvgl.h>
 
-/* Maximum message queue size */
+// Maximum message queue size
 #define TEMP_MSG_QUEUE_SIZE 30
 #define NODE_ID_LEN 10
 
-/* Structure of the queue messages*/
+// Structure of the queue messages
 struct temp_data_msg {
     char node_id[NODE_ID_LEN];
     float temperature;
@@ -28,7 +28,7 @@ struct temp_data_msg {
 
 extern struct k_msgq temp_data_msgq;
 
-/* Work queue for LVGL updates (thread-safe) */
+// Work queue for LVGL updates (thread-safe)
 struct ui_update_work {
     struct k_work work;
     struct temp_data_msg data;
@@ -36,29 +36,38 @@ struct ui_update_work {
 
 extern struct k_work_q ui_work_q;
 
-// In utils.h or a new header
+// Maximum number of sensor nodes
 #define MAX_NODES 6
+// History size for sensor data
 #define HISTORY_SIZE 60
 
+// Sensor data point with timestamp
 typedef struct {
     float temp;
     float hum;
     int64_t timestamp;
 } sensor_data_t;
 
+// Node information structure containing sensor data and LVGL widgets
 typedef struct {
     char node_id[NODE_ID_LEN];
     float current_temp;
     float current_hum;
-    int64_t last_update_time; // timestamp of last data update
+    // Timestamp of last data update
+    int64_t last_update_time;
     sensor_data_t history[HISTORY_SIZE];
-    uint8_t history_head;  // next index to write
-    uint8_t history_count; // number of valid entries
-    // LVGL widgets
-    lv_obj_t *card;        // card container for the node
-    lv_obj_t *label_id;    // node ID label (header)
-    lv_obj_t *label_temp;  // temperature label
-    lv_obj_t *label_hum;   // humidity label
+    // Next index to write in history ring buffer
+    uint8_t history_head;
+    // Number of valid entries in history
+    uint8_t history_count;
+    // Card container for the node
+    lv_obj_t *card;
+    // Node ID label (header)
+    lv_obj_t *label_id;
+    // Temperature label
+    lv_obj_t *label_temp;
+    // Humidity label
+    lv_obj_t *label_hum;
     bool used;
 } node_info_t;
 
@@ -66,6 +75,7 @@ extern node_info_t nodes[MAX_NODES];
 
 /**
  * @brief Enqueue a temperature data message for UI update.
+ * 
  * @param msg Pointer to the message to enqueue.
  * @return 0 if enqueued successfully, negative if queue is full.
  */

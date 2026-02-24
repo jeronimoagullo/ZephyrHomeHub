@@ -33,7 +33,7 @@ static void event_tabview_cb(lv_event_t *e) {
         tabIdx = lv_tabview_get_tab_active(tabview);
         LOG_INF("Current Active Tab : %d", tabIdx);
 
-        /* Reset all tab active flags first */
+        // Reset all tab active flags first
         temperature_tab_active = false;
 
         switch(tabIdx){
@@ -72,7 +72,7 @@ void create_tab_welcome(lv_obj_t* tab){
                         "or touching the top tabs.\n\n"
                         "Enjoy your day :)");
 
-        // Add image
+        // Add Zephyr logo image
         LV_IMAGE_DECLARE(Zephyr_RTOS_logo_2015_100pp_a8);
         lv_obj_t * img1 = lv_image_create(tab);
         lv_image_set_src(img1, &Zephyr_RTOS_logo_2015_100pp_a8);
@@ -129,7 +129,7 @@ void init_gui(void)
 
         style_init();
 
-        /*Create a Tab view object*/
+        // Create a tabview object
         lv_obj_t * tabview;
         tabview = lv_tabview_create(lv_scr_act());
         lv_tabview_set_tab_bar_position(tabview, LV_DIR_TOP);
@@ -137,25 +137,25 @@ void init_gui(void)
 
         lv_obj_add_style(tabview,  &style_tabview, 0);
 
-        /*Add tabs (the tabs are page (lv_page) and can be scrolled*/
+        // Add tabs (the tabs are pages and can be scrolled)
         lv_obj_t * tab1 = lv_tabview_add_tab(tabview, "Welcome");
         lv_obj_t * tab2 = lv_tabview_add_tab(tabview, "Temperature");
         lv_obj_t * tab3 = lv_tabview_add_tab(tabview, "Forecast");
         lv_obj_t * tab4 = lv_tabview_add_tab(tabview, "TODO");
         lv_obj_t * tab5 = lv_tabview_add_tab(tabview, "Settings");
 
-        /* Modern v9 API: get_tab_bar instead of get_tab_btns */
+        // Get tab bar using LVGLv9 API
         lv_obj_t * tab_bar = lv_tabview_get_tab_bar(tabview);
         lv_obj_add_style(tab_bar, &style_tab, 0);
 
-        /* 1. Register for VALUE_CHANGED on the tabview for swipes */
+        // Register for VALUE_CHANGED on the tabview for swipes
         lv_obj_add_event_cb(tabview, event_tabview_cb, LV_EVENT_VALUE_CHANGED, tabview);
 
-        /* 2. Iterate through all individual tab buttons and attach the CLICKED event */
+        // Iterate through all individual tab buttons and attach the CLICKED event
         uint32_t tab_count = lv_obj_get_child_count(tab_bar);
         for(uint32_t i = 0; i < tab_count; i++) {
                 lv_obj_t * tab_btn = lv_obj_get_child(tab_bar, i);
-                /* We use LV_EVENT_CLICKED for buttons to ensure it fires reliably */
+                // Use LV_EVENT_CLICKED for buttons to ensure it fires reliably
                 lv_obj_add_event_cb(tab_btn, event_tabview_cb, LV_EVENT_CLICKED, tabview);
         }
 

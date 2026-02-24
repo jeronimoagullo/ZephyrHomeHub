@@ -1,0 +1,15 @@
+mainmenu "ZephyrHomeHub Hub Configuration"
+
+config WIFI_SSID
+	string "WiFi SSID"
+	default "YOUR_WIFI"
+	help
+	  SSID of the WiFi network to connect to.
+
+config WIFI_PASSWORD
+	string "WiFi Password"
+	default "YOUR_PASSWORD"
+	help
+	  Password for the WiFi network.
+
+source "Kconfig.zephyr"

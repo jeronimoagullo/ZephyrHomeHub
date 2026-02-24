@@ -28,20 +28,19 @@ int main(void)
 	LOG_INF("Start HUB");
 
     display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
-	if (!device_is_ready(display_dev)) {
-		LOG_ERR("Device not ready, aborting test");
-		goto quit;
-	}
+    if (!device_is_ready(display_dev)) {
+        // Log error and exit if device is not ready
+        LOG_ERR("Device not ready, aborting test");
+        goto quit;
+    }
 
-    // Initialize Network
+    // Initialize network
     network_init();
 
     network_connect();
 
     // Wait to receive an IP address (blocking)
     wait_for_ip_addr();
-
-    //init_coap_server(); No needed
 
     // Initialize UI work queue
     ui_work_queue_init();
@@ -50,51 +49,51 @@ int main(void)
 
     // Add display objects
     init_gui();
-	display_blanking_off(display_dev);
-	lv_obj_t * count_label = lv_label_create(lv_scr_act());
-	lv_obj_align(count_label, LV_ALIGN_BOTTOM_LEFT, 360, 0);
+    display_blanking_off(display_dev);
+    lv_obj_t * count_label = lv_label_create(lv_scr_act());
+    lv_obj_align(count_label, LV_ALIGN_BOTTOM_LEFT, 360, 0);
 
     LOG_INF("Starting LVGL loop");
 
-    // foot object with uptime clock
-	char count_str[16] = {0};
+    // Uptime clock label
+    char count_str[16] = {0};
     int64_t last_second = -1;
     struct temp_data_msg msg;
 
-	/* Setup k_poll event for message queue */
-	struct k_poll_event events[1] = {
-		K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
-		                         K_POLL_MODE_NOTIFY_ONLY,
-		                         &temp_data_msgq),
-	};
+    // Setup k_poll event for message queue
+    struct k_poll_event events[1] = {
+        K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
+                                 K_POLL_MODE_NOTIFY_ONLY,
+                                 &temp_data_msgq),
+    };
 
-	while (1) {
-		/* Poll with 10ms timeout - wakes on queue data OR timeout for LVGL refresh */
-		ret = k_poll(events, 1, K_MSEC(10));
-		
-		/* Reset event state for next poll */
-		events[0].state = K_POLL_STATE_NOT_READY;
+    while (1) {
+        // Poll with 10ms timeout - wakes on queue data OR timeout for LVGL refresh
+        ret = k_poll(events, 1, K_MSEC(10));
+        
+        // Reset event state for next poll
+        events[0].state = K_POLL_STATE_NOT_READY;
 
-		/* Update clock only when second changes (reduce overhead) */
-		int64_t current_ms = k_uptime_get();
-		int64_t current_sec = current_ms / 1000;
-		
-		if (current_sec != last_second) {
-			int hours = current_sec / 3600;
-			int minutes = (current_sec % 3600) / 60;
-			int seconds = current_sec % 60;
-			sprintf(count_str, "%02d:%02d:%02d", hours, minutes, seconds);
-			lv_label_set_text(count_label, count_str);
-			last_second = current_sec;
-		}
+        // Update clock only when second changes (reduce overhead)
+        int64_t current_ms = k_uptime_get();
+        int64_t current_sec = current_ms / 1000;
+        
+        if (current_sec != last_second) {
+            int hours = current_sec / 3600;
+            int minutes = (current_sec % 3600) / 60;
+            int seconds = current_sec % 60;
+            sprintf(count_str, "%02d:%02d:%02d", hours, minutes, seconds);
+            lv_label_set_text(count_label, count_str);
+            last_second = current_sec;
+        }
 
-        /* Process all pending messages from queue (non-blocking) */
+        // Process all pending messages from queue (non-blocking)
         while (k_msgq_get(&temp_data_msgq, &msg, K_NO_WAIT) == 0) {
-            LOG_INF("Received msg from %s",msg.node_id);
-            // LOG_INF("Received msg from %s: %f ºC, %f %%",msg.node_id, msg.temperature, msg.humidity);
-            // In main.c, inside the message processing loop
+            // Log received message
+            LOG_INF("Received msg from %s", msg.node_id);
             node_info_t *node = get_or_create_node(msg.node_id);
             if (!node) {
+                // Log warning and skip if no free node slot
                 LOG_WRN("No free node slot, dropping data from %s", msg.node_id);
                 continue;
             }
@@ -124,14 +123,15 @@ int main(void)
             }
         }
 
-		/* LVGL task handler - maintains smooth UI */
-		lv_task_handler();
-	}
+        // LVGL task handler - maintains smooth UI
+        lv_task_handler();
+    }
 
     return 0;
 
  quit:
-	LOG_ERR("quit");
+    // Log error and exit
+    LOG_ERR("quit");
 
-	return 0;
+    return 0;
 }

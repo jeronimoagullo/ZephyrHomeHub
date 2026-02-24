@@ -22,7 +22,7 @@
 
 extern bool temperature_tab_active;
 
-/* Style definitions */
+// Style definitions
 extern lv_style_t style_btn;
 extern lv_style_t style_tabview;
 extern lv_style_t style_tab;

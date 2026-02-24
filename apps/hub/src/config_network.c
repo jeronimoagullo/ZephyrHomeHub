@@ -114,7 +114,7 @@ void wait_for_ip_addr(void)
     char ip_addr[NET_IPV4_ADDR_LEN];
     char gw_addr[NET_IPV4_ADDR_LEN];
 
-    // Get interface
+    // Get default network interface
     iface = net_if_get_default();
 
     // Wait for the IPv4 address to be obtained
@@ -139,10 +139,9 @@ void wait_for_ip_addr(void)
         LOG_ERR("Error: Could not convert gateway address to string");
     }
 
-    // Print the WiFi status
 #ifdef CONFIG_WIFI
-    struct wifi_iface_status status;
     // Get the WiFi status
+    struct wifi_iface_status status;
     if (net_mgmt(NET_REQUEST_WIFI_IFACE_STATUS,
                  iface,
                  &status,
@@ -168,6 +167,7 @@ void wait_for_ip_addr(void)
 
 /**
  * @brief Start network connection and DHCP client.
+ * 
  * @return 0 on success.
  */
 int network_connect(void)
@@ -177,7 +177,7 @@ int network_connect(void)
     // Get the default networking interface
     iface = net_if_get_default();
 
-    // start dhcp
+    // Start DHCP client
     net_dhcpv4_start(iface);
 
     return 0;
@@ -187,8 +187,10 @@ int network_connect(void)
 
 /**
  * @brief Connect to a WiFi network (blocking).
+ * 
  * @param ssid WiFi network SSID.
  * @param psk WiFi network password (PSK).
+ * 
  * @return 0 on success, negative on error.
  */
 int wifi_connect(char *ssid, char *psk)
@@ -216,7 +218,7 @@ int wifi_connect(char *ssid, char *psk)
                    &params,
                    sizeof(params));
 
-    // start dhcp
+    // Start DHCP client
     net_dhcpv4_start(iface);
 
     LOG_INF("Connecting to WIFI...");

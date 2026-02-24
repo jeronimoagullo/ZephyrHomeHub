@@ -19,8 +19,8 @@
 #define __CONFIG_NET_H__
 
 #define CONFIG_NET_WIFI_LENGTH 100
-#define WIFI_SSID       "LaMadriguera"
-#define WIFI_PASSWORD   "1dos3Conejito"
+#define WIFI_SSID       CONFIG_WIFI_SSID
+#define WIFI_PASSWORD   CONFIG_WIFI_PASSWORD
 
 // Network prototypes
 void network_init(void);

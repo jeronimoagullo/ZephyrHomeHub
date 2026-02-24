@@ -64,18 +64,18 @@ static int temp_node_post(struct coap_resource *resource, struct coap_packet *re
 
     LOG_INF("Received COAP message");
 
-    /* 1. Extract the node ID from the URI Query option (e.g., 'id=ABCD1234') */
+    // Extract the node ID from the URI Query option (e.g., 'id=ABCD1234')
     struct coap_option query_opt;
     ret = coap_find_options(request, COAP_OPTION_URI_QUERY, &query_opt, 1);
     if (ret > 0) {
-        /* query_opt.value now holds the string "id=ABCD1234" */
+        // query_opt.value now holds the string "id=ABCD1234"
         int len = MIN(query_opt.len - 3, sizeof(node_id) - 1);
         memcpy(node_id, &query_opt.value[3], len);
         node_id[len] = '\0';
         LOG_INF("POST request from Node ID: %s", node_id);
     }
 
-    /* 2. Extract and log the payload (sensor value) */
+    // Extract and log the payload (sensor value)
     payload = coap_packet_get_payload(request, &payload_len);
     if (payload && payload_len > 0) {
         int len = MIN(payload_len, sizeof(payload_str) - 1);
@@ -84,30 +84,31 @@ static int temp_node_post(struct coap_resource *resource, struct coap_packet *re
         LOG_INF("Sensor payload: %s", payload_str);
     }
 
-    /* 3. Prepare the receive message for the queue */
+    // Prepare the receive message for the queue
     struct temp_data_msg msg = {0};
     strncpy(msg.node_id, node_id, NODE_ID_LEN - 1);
-    msg.temperature = atof(payload_str);   /* Convert string to float */
-    msg.humidity = -1.0f;                  /* Not used yet */
+    // Convert string to float
+    msg.temperature = atof(payload_str);
+    // Not used yet
+    msg.humidity = -1.0f;
     msg.timestamp = k_uptime_get();
 
-    /* 4. Submit work to UI work queue (thread-safe) */
+    // Submit work to UI work queue (thread-safe)
     ret = ui_update_submit(&msg);
     if (ret < 0) {
         LOG_WRN("Failed to submit UI update for node %s", node_id);
     }
 
-    /* 3. Send a response back to the client.
-       Returning a response code is a shortcut for sending an empty ACK. */
+    // Send a response back to the client
+    // Returning a response code is a shortcut for sending an empty ACK
     return COAP_RESPONSE_CODE_CREATED; // Or COAP_RESPONSE_CODE_CHANGED
 }
 
-/* Define the URI path for your resource */
+// Define the URI path for the resource
 static const char * const temp_node_path[] = { "temp-node", NULL };
 
-/* Define the resource, linking it to the service and your handler */
+// Define the resource, linking it to the service and the handler
 COAP_RESOURCE_DEFINE(temp_node_resource, coap_server, {
     .path = temp_node_path,
-    .post = temp_node_post, // Assign the POST handler
-    /* You could also assign .get, .put, .del here */
+    .post = temp_node_post,
 });
