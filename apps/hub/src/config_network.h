@@ -31,6 +31,10 @@ void wait_for_ip_addr(void);
 int wifi_connect(char *ssid, char *psk);
 int wifi_disconnect(void);
 
+// Network info getters
+int get_ip_address(char *ip_addr, size_t len);
+int get_gateway_address(char *gw_addr, size_t len);
+
 /**
  * @}
  */

@@ -14,7 +14,7 @@
 
 
 #ifndef LV_ATTRIBUTE_MEM_ALIGN
-#define LV_ATTRIBUTE_MEM_ALIGN
+#define LV_ATTRIBUTE_MEM_ALIGN __attribute__((aligned(32)))
 #endif
 
 #ifndef LV_ATTRIBUTE_IMAGE_ZEPHYR_RTOS_LOGO_2015_100PP_A8

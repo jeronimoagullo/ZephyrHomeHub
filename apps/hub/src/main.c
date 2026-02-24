@@ -1,12 +1,11 @@
 /**
  * @file main.c
- * @author Jerónimo Agulló Ocampos (jeronimoagullo@jeroagullo.com)
- * @brief 	This app creates a CoAP server and HUB for ZephyrHomeHub project
+ * @author Jeronimo Agullo (jeronimoagullo97@gmail.com)
+ * @brief Main application entry point for ZephyrHomeHub - CoAP server and LVGL GUI hub.
  * @version 1.0
- * @date 2025-12-10
- *
- * @copyright Copyright (c) jeroagullo 2025
- *
+ * @date 2025-02-24
+ * @copyright Copyright (c) 2025
+ * @see https://github.com/jeroagullo
  */
 
 #include <zephyr/logging/log.h>
@@ -44,6 +43,9 @@ int main(void)
 
     //init_coap_server(); No needed
 
+    // Initialize UI work queue
+    ui_work_queue_init();
+
     LOG_INF("END OF INITIALIZATION");
 
     // Add display objects
@@ -54,21 +56,42 @@ int main(void)
 
     LOG_INF("Starting LVGL loop");
 
-    // foot object with boot time
-	char count_str[22] = {0};
-    int mseconds = 0;
+    // foot object with uptime clock
+	char count_str[16] = {0};
+    int64_t last_second = -1;
     struct temp_data_msg msg;
 
-	while (1) {
-		mseconds = k_uptime_get();
-		sprintf(count_str, "%.2d:%.2d:%.2d:%.3d",
-			(mseconds/1000)/3600, (mseconds/1000)/60, (mseconds/1000)%60, mseconds%1000);
-		lv_label_set_text(count_label, count_str);
+	/* Setup k_poll event for message queue */
+	struct k_poll_event events[1] = {
+		K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
+		                         K_POLL_MODE_NOTIFY_ONLY,
+		                         &temp_data_msgq),
+	};
 
-        /* Leer todos los mensajes pendientes de la cola (no bloqueante) */
+	while (1) {
+		/* Poll with 10ms timeout - wakes on queue data OR timeout for LVGL refresh */
+		ret = k_poll(events, 1, K_MSEC(10));
+		
+		/* Reset event state for next poll */
+		events[0].state = K_POLL_STATE_NOT_READY;
+
+		/* Update clock only when second changes (reduce overhead) */
+		int64_t current_ms = k_uptime_get();
+		int64_t current_sec = current_ms / 1000;
+		
+		if (current_sec != last_second) {
+			int hours = current_sec / 3600;
+			int minutes = (current_sec % 3600) / 60;
+			int seconds = current_sec % 60;
+			sprintf(count_str, "%02d:%02d:%02d", hours, minutes, seconds);
+			lv_label_set_text(count_label, count_str);
+			last_second = current_sec;
+		}
+
+        /* Process all pending messages from queue (non-blocking) */
         while (k_msgq_get(&temp_data_msgq, &msg, K_NO_WAIT) == 0) {
             LOG_INF("Received msg from %s",msg.node_id);
-            //LOG_INF("Received msg from %s: %f ºC, %f %%",msg.node_id, msg.temperature, msg.humidity);
+            // LOG_INF("Received msg from %s: %f ºC, %f %%",msg.node_id, msg.temperature, msg.humidity);
             // In main.c, inside the message processing loop
             node_info_t *node = get_or_create_node(msg.node_id);
             if (!node) {
@@ -76,9 +99,10 @@ int main(void)
                 continue;
             }
 
-            // Update current values
+            // Update current values and timestamp
             node->current_temp = msg.temperature;
             node->current_hum = msg.humidity;
+            node->last_update_time = msg.timestamp;
 
             // Store in history ring buffer
             node->history[node->history_head].temp = msg.temperature;
@@ -89,7 +113,7 @@ int main(void)
                 node->history_count++;
 
             // If node is new, create its widgets
-            if (node->label == NULL) {
+            if (node->card == NULL) {
                 create_node_widgets(node);
             }
 
@@ -100,9 +124,8 @@ int main(void)
             }
         }
 
+		/* LVGL task handler - maintains smooth UI */
 		lv_task_handler();
-
-		k_msleep(10);
 	}
 
     return 0;

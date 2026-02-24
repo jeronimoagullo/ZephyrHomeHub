@@ -1,3 +1,13 @@
+/**
+ * @file lvgl_tabs.c
+ * @author Jeronimo Agullo (jeronimoagullo97@gmail.com)
+ * @brief LVGL tabbed interface implementation - main GUI with Welcome, Temperature, Forecast, TODO, and Settings tabs.
+ * @version 1.0
+ * @date 2025-02-24
+ * @copyright Copyright (c) 2025
+ * @see https://github.com/jeroagullo
+ */
+
 #include <lvgl.h>
 #include <zephyr/kernel.h>
 
@@ -8,15 +18,23 @@ LOG_MODULE_REGISTER(lvgl_tabs, LOG_LEVEL_INF);
 
 bool temperature_tab_active = false;
 
-// NOTE: there is a bug in which the tabview changes when you press the button, so the returning value 
-// of lv_tabview_get_tab_act is a weird number, working only by "sliding" instead of "clicking"
-// it is solved using the tabview as user data parameter
-static void event_tabview_cb(lv_event_t *e){
-
-        lv_obj_t * tabview = lv_event_get_user_data(e);
-        uint16_t tabIdx = lv_tabview_get_tab_act(tabview);
-
+/**
+ * @brief Callback for tab change events.
+ * 
+ * Handles button presses using LV_EVENT_RELEASED (code 26) for tab buttons
+ * and LV_EVENT_VALUE_CHANGED for swipe gestures.
+ * 
+ * @param e Pointer to the LVGL event.
+ */
+static void event_tabview_cb(lv_event_t *e) {
+        lv_obj_t *tabview = lv_event_get_user_data(e);
+        uint16_t tabIdx;
+        
+        tabIdx = lv_tabview_get_tab_active(tabview);
         LOG_INF("Current Active Tab : %d", tabIdx);
+
+        /* Reset all tab active flags first */
+        temperature_tab_active = false;
 
         switch(tabIdx){
                 case TAB_WELCOME:
@@ -38,6 +56,10 @@ static void event_tabview_cb(lv_event_t *e){
         }
 }
 
+/**
+ * @brief Create the Welcome tab content with logo and introduction text.
+ * @param tab Pointer to the tab object.
+ */
 void create_tab_welcome(lv_obj_t* tab){
 
         lv_obj_t * label = lv_label_create(tab);
@@ -51,18 +73,16 @@ void create_tab_welcome(lv_obj_t* tab){
                         "Enjoy your day :)");
 
         // Add image
-        LV_IMG_DECLARE(Zephyr_RTOS_logo_2015_100pp_a8);
-        lv_obj_t * img1 = lv_img_create(tab);
-        lv_img_set_src(img1, &Zephyr_RTOS_logo_2015_100pp_a8);
+        LV_IMAGE_DECLARE(Zephyr_RTOS_logo_2015_100pp_a8);
+        lv_obj_t * img1 = lv_image_create(tab);
+        lv_image_set_src(img1, &Zephyr_RTOS_logo_2015_100pp_a8);
         lv_obj_align(img1, LV_ALIGN_TOP_RIGHT, -20, 0);
 }
-/**
- * @brief Create a tab2 object
- *              This tab shows the sliders and buttons (with mqtt)
- * 
- * @param tab 
- */
 
+/**
+ * @brief Create the Temperature tab content with sensor node grid.
+ * @param tab Pointer to the tab object.
+ */
 void create_tab_temperature(lv_obj_t* tab){
 
         // create top text
@@ -75,6 +95,10 @@ void create_tab_temperature(lv_obj_t* tab){
         
 }
 
+/**
+ * @brief Create the Forecast tab content (weather forecast placeholder).
+ * @param tab Pointer to the tab object.
+ */
 void create_tab_forecast(lv_obj_t* tab){
 
         lv_obj_t * label = lv_label_create(tab);
@@ -84,6 +108,10 @@ void create_tab_forecast(lv_obj_t* tab){
         // TODO
 }
 
+/**
+ * @brief Create the TODO tab content (reserved for future features).
+ * @param tab Pointer to the tab object.
+ */
 void create_tab_todo(lv_obj_t* tab){
 
         lv_obj_t * label = lv_label_create(tab);
@@ -94,20 +122,24 @@ void create_tab_todo(lv_obj_t* tab){
 }
 
 /**
- * @brief Create a tab5 object
- *              Config tag to
- * 
- * @param tab 
+ * @brief Create the Settings tab content with network configuration panel.
+ * @param tab Pointer to the tab object.
  */
 void create_tab_settings(lv_obj_t* tab){
         lv_obj_t * label = lv_label_create(tab);
         lv_label_set_text(label, "You can check and modify the settings of device");
         lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
 
-        // TODO
+        create_settings_network_panel(tab);
 }
 
-
+/**
+ * @brief Initialize the main GUI with tabview and all application tabs.
+ * 
+ * Creates the main tabview widget with 5 tabs: Welcome, Temperature,
+ * Forecast, TODO, and Settings. Applies custom styles and registers
+ * event callbacks for tab navigation.
+ */
 void init_gui(void)
 {
 
@@ -128,12 +160,20 @@ void init_gui(void)
         lv_obj_t * tab4 = lv_tabview_add_tab(tabview, "TODO");
         lv_obj_t * tab5 = lv_tabview_add_tab(tabview, "Settings");
 
-        lv_obj_t * tab_btns = lv_tabview_get_tab_btns(tabview);
-        lv_obj_add_style(tab_btns, &style_tab, 0);
+        /* Modern v9 API: get_tab_bar instead of get_tab_btns */
+        lv_obj_t * tab_bar = lv_tabview_get_tab_bar(tabview);
+        lv_obj_add_style(tab_bar, &style_tab, 0);
 
-        /* Add callbacks for each button of the tabs and for swipe handling */
-        lv_obj_add_event_cb(tab_btns, event_tabview_cb, LV_EVENT_CLICKED, tabview);
+        /* 1. Register for VALUE_CHANGED on the tabview for swipes */
         lv_obj_add_event_cb(tabview, event_tabview_cb, LV_EVENT_VALUE_CHANGED, tabview);
+
+        /* 2. Iterate through all individual tab buttons and attach the CLICKED event */
+        uint32_t tab_count = lv_obj_get_child_count(tab_bar);
+        for(uint32_t i = 0; i < tab_count; i++) {
+                lv_obj_t * tab_btn = lv_obj_get_child(tab_bar, i);
+                /* We use LV_EVENT_CLICKED for buttons to ensure it fires reliably */
+                lv_obj_add_event_cb(tab_btn, event_tabview_cb, LV_EVENT_CLICKED, tabview);
+        }
 
         create_tab_welcome(tab1);
         create_tab_temperature(tab2);

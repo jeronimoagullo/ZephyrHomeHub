@@ -1,11 +1,21 @@
+/**
+ * @file lvgl_styles.c
+ * @author Jeronimo Agullo (jeronimoagullo97@gmail.com)
+ * @brief LVGL style definitions and color palette for the application UI.
+ * @version 1.0
+ * @date 2025-02-24
+ * @copyright Copyright (c) 2025
+ * @see https://github.com/jeroagullo
+ */
+
 #include <zephyr/kernel.h>
 #include <lvgl.h>
 #include "lvgl_tabs.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(jeroagullo_styles);
+LOG_MODULE_REGISTER(jeroagullo_styles, LOG_LEVEL_INF);
 
-// for synchronization with lv_task_handler() calls
+/* Mutex for synchronization with lv_task_handler() calls */
 K_MUTEX_DEFINE(lvgl_mutex);
 
 /* Styles */
@@ -16,8 +26,7 @@ lv_style_t style_tabview;
 lv_style_t style_tab;
 lv_style_t style_error;
 
-/* Colors */
-// jeroagullo colors
+/* Custom color palette */
 lv_color_t navy_color;
 lv_color_t cyan_color;
 lv_color_t honey_color;
@@ -26,7 +35,7 @@ lv_color_t sky_color;
 lv_color_t gum_color;
 lv_color_t tiger_color;
 
-// jeroagullo gris colors
+/* Grey scale colors */
 lv_color_t d10_color;
 lv_color_t l10_color;
 lv_color_t l20_color;
@@ -34,6 +43,9 @@ lv_color_t l30_color;
 lv_color_t l40_color;
 lv_color_t l50_color;
 
+/**
+ * @brief Initialize custom color palette from hex values.
+ */
 void create_lvgl_colors(){
         navy_color = lv_color_hex(0x061B2B);
         cyan_color = lv_color_hex(0x00C1DE);
@@ -43,7 +55,7 @@ void create_lvgl_colors(){
         gum_color = lv_color_hex(0xDA1684);
         tiger_color = lv_color_hex(0xF5801F);
 
-        // jeroagullo gris colors
+        /* Grey scale colors */
         d10_color = lv_color_hex(0x000712);
         l10_color = lv_color_hex(0x404B5C);
         l20_color = lv_color_hex(0x7F8691);
@@ -53,8 +65,7 @@ void create_lvgl_colors(){
 }
 
 /**
- * @brief Create a style btn 1 object
- * 
+ * @brief Create button style with navy background and cyan border.
  */
 void create_style_btn(){
         lv_style_init(&style_btn);
@@ -70,8 +81,7 @@ void create_style_btn(){
 }
 
 /**
- * @brief Create a style tab object
- * 
+ * @brief Create tab button style with navy background.
  */
 void create_style_tab(){
         lv_style_init(&style_tab);
@@ -82,8 +92,7 @@ void create_style_tab(){
 }
 
 /**
- * @brief Create a style tabview object
- * 
+ * @brief Create tabview container style with gradient background.
  */
 void create_style_tabview(){
         lv_style_init(&style_tabview);
@@ -94,27 +103,29 @@ void create_style_tabview(){
 
         lv_style_set_text_color(&style_tabview, lv_color_black());
 
-        /* Create jeroagullo tab style */
+        /* Create tab button style */
         create_style_tab();
 }
 
 /**
- * @brief Create a style error object
- * 
+ * @brief Create error text style with red color.
  */
 void create_style_error(){
         lv_style_init(&style_error);
         lv_style_set_text_color(&style_error, lv_palette_main(LV_PALETTE_RED));
 }
 
-
-
+/**
+ * @brief Initialize all LVGL styles used in the application.
+ * 
+ * Must be called once at startup before creating any styled widgets.
+ */
 void style_init(void)
 {
-        /* create colors */
+        /* Create custom color palette */
         create_lvgl_colors();
 
-        /* Create jeroagullo button style 1*/
+        /* Create button style */
         create_style_btn();
 
         /* Create tabview style */

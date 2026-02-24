@@ -1,3 +1,13 @@
+/**
+ * @file coap_server.c
+ * @author Jeronimo Agullo (jeronimoagullo97@gmail.com)
+ * @brief CoAP server implementation for receiving sensor data from nodes.
+ * @version 1.0
+ * @date 2025-02-24
+ * @copyright Copyright (c) 2025
+ * @see https://github.com/jeroagullo
+ */
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(coap_server, LOG_LEVEL_DBG);
 
@@ -13,6 +23,10 @@ static uint16_t coap_port = 5683;
 
 COAP_SERVICE_DEFINE(coap_server, NULL, &coap_port, COAP_SERVICE_AUTOSTART);
 
+/**
+ * @brief Initialize and start the CoAP server.
+ * @return 0 on success, negative error code on failure.
+ */
 int init_coap_server(){
     int ret = 0;
 
@@ -27,6 +41,18 @@ int init_coap_server(){
     return 0;
 }
 
+/**
+ * @brief POST handler for temperature node data.
+ * 
+ * Receives sensor data from nodes via CoAP POST request.
+ * Extracts node ID from URI query and payload, then submits to UI work queue.
+ * 
+ * @param resource Pointer to the CoAP resource.
+ * @param request Pointer to the received CoAP packet.
+ * @param addr Client socket address.
+ * @param addr_len Length of the socket address.
+ * @return CoAP response code (COAP_RESPONSE_CODE_CREATED on success).
+ */
 static int temp_node_post(struct coap_resource *resource, struct coap_packet *request,
                           struct sockaddr *addr, socklen_t addr_len)
 {
@@ -61,14 +87,14 @@ static int temp_node_post(struct coap_resource *resource, struct coap_packet *re
     /* 3. Prepare the receive message for the queue */
     struct temp_data_msg msg = {0};
     strncpy(msg.node_id, node_id, NODE_ID_LEN - 1);
-    msg.temperature = atof(payload_str);   // Convertir cadena a float
-    msg.humidity = -1.0f;                  // De momento no se usa
+    msg.temperature = atof(payload_str);   /* Convert string to float */
+    msg.humidity = -1.0f;                  /* Not used yet */
     msg.timestamp = k_uptime_get();
 
-    /* 4. Send to the queue (no blocking) */
-    ret = temp_data_enqueue(&msg);
+    /* 4. Submit work to UI work queue (thread-safe) */
+    ret = ui_update_submit(&msg);
     if (ret < 0) {
-        LOG_WRN("Queue full, dropping data from node %s", node_id);
+        LOG_WRN("Failed to submit UI update for node %s", node_id);
     }
 
     /* 3. Send a response back to the client.
